@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Employee Management System</h2>
+        
+        <!-- Employee Form -->
+        <div class="card p-3 mb-4">
+            <h5 id="formTitle">Add Employee</h5>
+            <form id="employeeForm">
+                <div class="mb-3">
+                    <label for="empId" class="form-label">Employee ID</label>
+                    <input type="number" class="form-control" id="empId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="empName" class="form-label">Employee Name</label>
+                    <input type="text" class="form-control" id="empName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="designation" class="form-label">Designation</label>
+                    <input type="text" class="form-control" id="designation" required>
+                </div>
+                <div class="mb-3">
+                    <label for="empSalary" class="form-label">Salary</label>
+                    <input type="number" class="form-control" id="empSalary" required>
+                </div>
+                <button type="submit" class="btn btn-success">Save Employee</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">Cancel</button>
+            </form>
+        </div>
+        
+        <!-- Employee Table -->
+        <h5>Employee List</h5>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Designation</th>
+                    <th>Salary</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTable"></tbody>
+        </table>
+    </div>
+    
+    <script>
+        const apiUrl = "http://localhost:8080/employees";
+        let isEditing = false;
+        
+        async function fetchEmployees() {
+            const response = await fetch(apiUrl);
+            const employees = await response.json();
+            const tableBody = document.getElementById("employeeTable");
+            tableBody.innerHTML = "";
+            
+            employees.forEach(emp => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${emp.empId}</td>
+                        <td>${emp.empName}</td>
+                        <td>${emp.designation}</td>
+                        <td>${emp.empSalary}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="loadEmployee(${emp.empId})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEmployee(${emp.empId})">Delete</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+        
+        document.getElementById("employeeForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const empId = document.getElementById("empId").value;
+            const empName = document.getElementById("empName").value;
+            const designation = document.getElementById("designation").value;
+            const empSalary = document.getElementById("empSalary").value;
+            
+            const employeeData = { empId, empName, designation, empSalary };
+            
+            if (isEditing) {
+                await fetch(`${apiUrl}/${empId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(employeeData)
+                });
+            } else {
+                await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(employeeData)
+                });
+            }
+            
+            resetForm();
+            fetchEmployees();
+        });
+        
+        async function deleteEmployee(empId) {
+            await fetch(`${apiUrl}/${empId}`, { method: "DELETE" });
+            fetchEmployees();
+        }
+        
+        async function loadEmployee(empId) {
+            const response = await fetch(`${apiUrl}/${empId}`);
+            const employee = await response.json();
+            
+            document.getElementById("empId").value = employee.empId;
+            document.getElementById("empName").value = employee.empName;
+            document.getElementById("designation").value = employee.designation;
+            document.getElementById("empSalary").value = employee.empSalary;
+            document.getElementById("empId").readOnly = true;
+            document.getElementById("formTitle").innerText = "Edit Employee";
+            isEditing = true;
+        }
+        
+        function resetForm() {
+            document.getElementById("employeeForm").reset();
+            document.getElementById("empId").readOnly = false;
+            document.getElementById("formTitle").innerText = "Add Employee";
+            isEditing = false;
+        }
+        
+        fetchEmployees();
+    </script>
+</body>
+</html>
